@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Giveaway Killer
-// @namespace    https://github.com/gekkedev/giveawayKiller
-// @version      1.0.0
+// @namespace    https://github.com/gekkedev/GiveawayKiller
+// @version      1.0.1
 // @description  Semi-automatic tool for Steam-related giveaway websites
 // @author       gekkedev
 // @match        *://*.marvelousga.com/*
