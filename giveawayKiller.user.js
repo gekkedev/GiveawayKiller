@@ -1,8 +1,8 @@
 // ==UserScript==
-// @name         Giveaway Killer (a.k.a. Giveaway Enhancer)
-// @namespace    https://github.com/gekkedev/giveawayHelperEnhancer
-// @version      0.6.2
-// @description  Enhances Steam key giveaways sites by lots of useful features
+// @name         Giveaway Killer
+// @namespace    https://github.com/gekkedev/giveawayKiller
+// @version      1.0.0
+// @description  Semi-automatic tool for Steam-related giveaway websites
 // @author       gekkedev
 // @match        *://*.marvelousga.com/*
 // @match        *://*.dupedornot.com/*
@@ -19,18 +19,39 @@
 // @match        *://*.gamehag.com/*
 // @match        *://*.steamcommunity.com/openid/login*
 // @match        *://*.steamcommunity.com/oauth/login*
-// @grant        none
-// @updateURL    https://raw.githubusercontent.com/gekkedev/giveawayHelperEnhancer/master/giveawayHelperEnhancer.user.js
-// @downloadURL  https://raw.githubusercontent.com/gekkedev/giveawayHelperEnhancer/master/giveawayHelperEnhancer.user.js
+// @grant        GM.getValue
+// @grant        GM.setValue
+// @updateURL    https://raw.githubusercontent.com/gekkedev/GiveawayKiller/master/giveawayKiller.user.js
+// @downloadURL  https://raw.githubusercontent.com/gekkedev/GiveawayKiller/master/giveawayKiller.user.js
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js
 // @require      https://cdnjs.cloudflare.com/ajax/libs/blueimp-md5/2.10.0/js/md5.min.js
+// @require      https://greasemonkey.github.io/gm4-polyfill/gm4-polyfill.js
+// @require      https://cdnjs.cloudflare.com/ajax/libs/notify/0.4.2/notify.min.js
+// @require      https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js
 // @run-at document-end
 // ==/UserScript==
 
-(function() {
+(async () => {
     J = jQuery.noConflict(true); //to prevent i.e. broken buttons when a site uses jquery too
-    /**
-    * Determine what to do for this page based on what's defined in the "config" variable
+
+    J.extend(J.expr[':'], { //https://stackoverflow.com/a/4936066
+        'containsi': function(elem, i, match, array)
+        {
+            return (elem.textContent || elem.innerText || '').toLowerCase()
+                .indexOf((match[3] || "").toLowerCase()) >= 0;
+        }
+    });
+
+    killerNotice = function(message) {
+        console.log(message);
+        J.notify("GiveawayKiller v" + GM_info.script.version + ": " + message, {
+            autoHideDelay: 10000,
+            className: "info"
+        });
+    };
+
+    /* Configuration
+    *  Determine what to do for this page based on what's defined in the "config" variable
     *
     * 		hostname: String
     *			The hostname of the site we're setting the config for. Must be the same as what's defined
@@ -47,7 +68,7 @@
     *
     */
     var removePopups = (function(){
-        //console.log("removing popups!");
+        killerNotice("removing popups!");
         removeElement("a[id^='popup']");
     });
     var fakeClickLinks = function() {
@@ -71,28 +92,23 @@
         }
     };
     removeElement = function(ident) {
-        if (scanForElement(ident)) {
-            J(ident).remove();
-        }
+        J(ident).remove();
     };
-    var clickElement = function(ident) {
-        if (scanForElement(ident)) {
-            J(ident).click();
-        }
-    };
-    var visitLink = (function(ident){
+    var visitLink = function(ident){
         window.location.replace(J(ident).attr("href"));
-    });
-    var removeGoogleAds = (function(){
-        //console.log("removing google ads!");
-        removeElement("ins[class*='adsbygoogle']");
-        setTimeout(removeGoogleAds, 1000);
-    });
+    };
+    var removeGoogleAds = function(){
+        if (scanForElement("ins[class*='adsbygoogle']")) {
+            killerNotice("Google ads found, removing now!");
+            removeElement("ins[class*='adsbygoogle']");
+            setTimeout(removeGoogleAds, 1000);
+        }
+    };
   	var getEncapsedString = function(input, delimiter) {//just gets the first occurrence
         var startpos = input.indexOf(delimiter) + delimiter.length;
         var endpos = input.indexOf(delimiter, startpos);
-        return input.substring(startpos, endpos)
-    }
+        return input.substring(startpos, endpos);
+    };
     var getRandomInt = function(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     };
@@ -158,40 +174,44 @@
         }
     };
     var taskSkipper_3 = function() {//bananagiveaway/bananatic
-        //we can autosolve only link visiting (including facebook and youtube); 
-        var tasks = J("li:has(span.icon:has(i.banicon.banicon-logo-small))");
-        tasks = tasks.add(J("li:contains('FB'):contains('Like'), li:has(span.icon:has(i.banicon.banicon-facebook))"));
-        tasks = tasks.add(J("li:contains('YT'):contains('Check'), li:has(span.icon:has(i.banicon.banicon-youtube))"));
+        //we can autosolve only link visiting (including facebook and youtube);
+        var tasks = J("li:has(span.icon:has(i.banicon.banicon-logo-small)):not(li:containsi('collect'):containsi('bananas'))");
+        tasks = tasks.add(J("li:contains('FB'):containsi('Like'), li:has(span.icon:has(i.banicon.banicon-facebook))"));
+        tasks = tasks.add(J("li:contains('YT'):containsi('Check'):not(li:containsi('sub'), li:has(span.icon:has(i.banicon.banicon-youtube)):not(li:containsi('sub')"));
         //steam group, twitter, and point collection tasks might be different
         //tasks = tasks.add(J("li:contains('Share'):contains('Twitter')"));
         //sharing on non.proprietary social media platforms
-        tasks = tasks.add(J("li:contains('Share'):not(li:contains('Twitter')"));
+        tasks = tasks.add(J("li:containsi('Share'):not(li:containsi('Twitter')"));
         tasks = J.unique(tasks); //filters out any duplicates
-        console.log(tasks.length + " skippable tasks found.");
+        tasks = tasks.filter(":not(:containsi('completed'))");
+        killerNotice(tasks.length + " skippable tasks found.");console.log(tasks); return true;
 
       	//dig deeper, but keep the task steps together
         tasks = tasks.find("div[class='buttons']");
         var successes = 0;
         J.ajaxSetup({async:false}); //not so smooth looking but easy
-        if (tasks.length) {console.log(tasks);
+        if (tasks.length) {
             tasks.each(function(counter, task){
+                killerNotice("Solving one task...");
                 var youtubebutton = J("button[data-ytid]");
-                if (youtubebutton.length) {//just hit the second link, since there is just one.
+                if (youtubebutton.length) { //just hit the second link, since there is just one.
+                    killerNotice("skipping the first link (youtube video)");
                     J.get(
-                        getEncapsedString(J(J(task).find("button[disabled]")).attr("onclick"), "'"),
-                            function(){
-                                successes++;
-                            }
-                        );
+                        getEncapsedString(J(J(task).find("button[onclick*='window.location.href']")).attr("onclick"), "'"), //previously: button[disabled]
+                        function(){
+                            successes++;
+                            killerNotice("Solved!");
+                        }
+                    );
                 } else {
                     J.get( //hit the first link...
-                        getEncapsedString(J(J(task).find("button:not([disabled])")).attr("onclick"), "'"),
-                        function() {//...and only continue with the second link on success...
-                            //which will, on success, make sure we really solved the task
+                        getEncapsedString(J(J(task).find("button[onclick*='window.open']")).attr("onclick"), "'")).always( //previously: button:not([disabled])
+                        function() {
                             J.get(
-                                getEncapsedString(J(J(task).find("button[disabled]")).attr("onclick"), "'"),
-                                function(){
+                                getEncapsedString(J(J(task).find("button[onclick*='window.location.href']")).attr("onclick"), "'")).always( //previously: button[disabled]
+                                function() {//always returns 302 so we should do this differently.
                                     successes++;
+                                    killerNotice("Solved!");
                                 }
                             );
                         }
@@ -202,11 +222,22 @@
             if (tasks.length == successes) {
                 location.reload();
             } else {
-                console.log("Could not solve all solveable tasks!");
+                killerNotice("Could not solve all solveable tasks!");
             }
         } else {
             J("div[class='bottom'] span[class='status']").prepend("<div class='alert alert-danger'>Giveaway Killer by gekkedev has skipped some tasks for you, because this site is exploiting it's users by excessive ad banner usage plus making users fullfill specific tasks which generate a dozen times more revenue than what is offered to the user.</div><br>");
         }
+    };
+
+    var taskSolver_IG = function() {
+        /*J.ajax({
+            url: 'https://maxcdn.bootstrapcdn.com/bootstrap/3.3.2/js/bootstrap.min.js',
+            datatype: 'script',
+            cache: true
+        }).done(function() {
+            J('#myModal-givform').modal('show');
+        });*/
+        J('#myModal-givform').modal('show');
     };
 
     //configuration
@@ -234,7 +265,7 @@
             hostname: "indiegala.com",
             ads: true,
             clickables: ["button#close-socials"],
-            custom: function() {J('#myModal-givform').modal('show');}
+            trigger: [taskSolver_IG]
         },
         {
             hostname: "giveaway.su",
@@ -301,6 +332,7 @@
         var site = config[i];
 
         if(document.location.hostname.split(".").splice(-2).join(".") == site.hostname) {
+            killerNotice('Welcome to ' + site.hostname + '!');
             if (site.ads) {
                 removeGoogleAds();
                 //removePopups();
@@ -308,27 +340,40 @@
             }
             if (site.autologin !== undefined) {
                 if (scanForElement(site.autologin)) {
-                    console.log('performing autologin');
-                    visitLink(site.autologin);
+                    var cooldowntime = 5 * 60;//logging in once every 5 minutes is enough, everything else is wayy too likely a broken authentification system
+                    var nowinseconds = Math.round(Date.now() / 1000);
+                    var lastlogin = await GM.getValue('lastlogin_' + site.hostname, nowinseconds)
+                    if (nowinseconds >= lastlogin + cooldowntime) {
+                        GM.setValue('lastlogin_' + site.hostname, nowinseconds);
+                        killerNotice('Performing autologin.');
+                        visitLink(site.autologin);
+                    } else {
+                        killerNotice("Logging in too often! We should cool down for at least " + (cooldowntime - (nowinseconds - lastlogin)) + " seconds");
+                    }
                 }
             }
             if (site.clickables !== undefined) {
                 if (site.clickables.length > 0) {
                     for(var j = 0; j < site.clickables.length; j++) {
-                        if (J.isArray(site.clickables[j])) {
+                        if (J.isArray(site.clickables[j])) {//randomization doesn't look like the best solution here. what's it even for?
                             j = getRandomInt(0, site.clickables[j].length);
-                            console.log("picking the entry " + j);
+                            console.log(j);
                         }
-                        clickElement(site.clickables[j]);
+                        if (scanForElement(site.clickables[j])) {
+                            killerNotice("Clicking a button for you <3");
+                            J(site.clickables[j]).click();
+                        }
                     }
                 }
             }
             if (site.trigger !== undefined) {
                 for(var j = 0; j < site.trigger.length; j++) {
+                    killerNotice('Swinging my task skipping wand!');
                     site.trigger[j]();
                 }
             }
             if (site.custom !== undefined) {
+                killerNotice('Doing random magic!');
                 site.custom();
             }
         }
