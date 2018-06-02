@@ -16,6 +16,7 @@
 // @match        *://*.treasuregiveaways.com/*
 // @match        *://*.goldengiveaways.org/*
 // @match        *://*.bananagiveaway.com/*
+// @match        *://*.grabfreegame.com/*
 // @match        *://*.gamehag.com/*
 // @match        *://*.steamcommunity.com/openid/login*
 // @match        *://*.steamcommunity.com/oauth/login*
@@ -173,7 +174,7 @@
             J(".giveaway-new").last().prepend("<div class='alert alert-danger'>Giveaway Killer by gekkedev has skipped some tasks for you, because this site is trying to manipulate the Steam store by asking you to follow specific curators. Doing such would qualify you for punishments regarding Steam T.O.S. violations.</div><br>");
         }
     };
-    var taskSkipper_3 = function() {//bananagiveaway/bananatic
+    var taskSkipper_3 = function() {//bananagiveaway/bananatic/grabfreegame.com
         //we can autosolve only link visiting (including facebook and youtube);
         var tasks = J("li:has(span.icon:has(i.banicon.banicon-logo-small)):not(li:containsi('collect'):containsi('bananas'))");
         tasks = tasks.add(J("li:contains('FB'):containsi('Like'), li:has(span.icon:has(i.banicon.banicon-facebook))"));
@@ -181,10 +182,10 @@
         //steam group, twitter, and point collection tasks might be different
         //tasks = tasks.add(J("li:contains('Share'):contains('Twitter')"));
         //sharing on non.proprietary social media platforms
-        tasks = tasks.add(J("li:containsi('Share'):not(li:containsi('Twitter')"));
+        //tasks = tasks.add(J("li:containsi('Share'):not(li:containsi('Twitter')"));
         tasks = J.unique(tasks); //filters out any duplicates
         tasks = tasks.filter(":not(:containsi('completed'))");
-        killerNotice(tasks.length + " skippable tasks found.");console.log(tasks); return true;
+        killerNotice(tasks.length + " skippable tasks found.");console.log(tasks);
 
       	//dig deeper, but keep the task steps together
         tasks = tasks.find("div[class='buttons']");
@@ -317,6 +318,12 @@
             trigger: [taskSkipper_3]
         },
         {
+            hostname: "grabfreegame.com",
+            ads: true,
+            autologin: "a[href*='/steam/']",
+            trigger: [taskSkipper_3]
+        },
+        {
             hostname: "gamehag.com",
             ads: true
         },
@@ -340,10 +347,10 @@
             }
             if (site.autologin !== undefined) {
                 if (scanForElement(site.autologin)) {
-                    var cooldowntime = 5 * 60;//logging in once every 5 minutes is enough, everything else is wayy too likely a broken authentification system
+                    var cooldowntime = 5 * 60; //logging in once every 5 minutes is enough, everything else is wayy too likely a broken authentification system
                     var nowinseconds = Math.round(Date.now() / 1000);
                     var lastlogin = await GM.getValue('lastlogin_' + site.hostname, nowinseconds)
-                    if (nowinseconds >= lastlogin + cooldowntime) {
+                    if (nowinseconds == lastlogin || nowinseconds >= lastlogin + cooldowntime) {
                         GM.setValue('lastlogin_' + site.hostname, nowinseconds);
                         killerNotice('Performing autologin.');
                         visitLink(site.autologin);
