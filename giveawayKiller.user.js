@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Giveaway Killer
 // @namespace    https://github.com/gekkedev/GiveawayKiller
-// @version      1.0.1
+// @version      1.1
 // @description  Semi-automatic tool for Steam-related giveaway websites
 // @author       gekkedev
 // @match        *://*.marvelousga.com/*
@@ -17,6 +17,7 @@
 // @match        *://*.goldengiveaways.org/*
 // @match        *://*.bananagiveaway.com/*
 // @match        *://*.grabfreegame.com/*
+// @match        *://*.gamingimpact.com/*
 // @match        *://*.gamehag.com/*
 // @match        *://*.steamcommunity.com/openid/login*
 // @match        *://*.steamcommunity.com/oauth/login*
@@ -319,6 +320,12 @@
         },
         {
             hostname: "grabfreegame.com",
+            ads: true,
+            autologin: "a[href*='/steam/']",
+            trigger: [taskSkipper_3]
+        },
+        {
+            hostname: "gamingimpact.com",
             ads: true,
             autologin: "a[href*='/steam/']",
             trigger: [taskSkipper_3]
