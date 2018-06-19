@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Giveaway Killer
 // @namespace    https://github.com/gekkedev/GiveawayKiller
-// @version      1.1.1
+// @version      1.1.2
 // @description  Semi-automatic tool for Steam-related giveaway websites
 // @author       gekkedev
 // @match        *://*.marvelousga.com/*
@@ -375,8 +375,8 @@
         {
             hostname: "steamcommunity.com",
             ads: false,
-            clickables: ["input[type='submit']#imageLogin"], // oauth&openid; :contains('Sign In') might not work due to a multilingual interface
-            custom: function() {if (checkGetParameter("killerjoin")) {if (scanForElement("#join_group_form")) { killerNotice("Joining a Steam group!");J("#join_group_form").submit();}}}
+            clickables: ["input[type='submit']#imageLogin"] // oauth&openid; :contains('Sign In') might not work due to a multilingual interface
+            //custom: function() {if (checkGetParameter("killerjoin")) {if (scanForElement("#join_group_form")) { killerNotice("Joining a Steam group!");J("#join_group_form").submit();}}}
         }
     ];
 
