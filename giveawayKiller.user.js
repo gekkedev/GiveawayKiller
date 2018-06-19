@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Giveaway Killer
 // @namespace    https://github.com/gekkedev/GiveawayKiller
-// @version      1.1
+// @version      1.1.1
 // @description  Semi-automatic tool for Steam-related giveaway websites
 // @author       gekkedev
 // @match        *://*.marvelousga.com/*
@@ -21,6 +21,7 @@
 // @match        *://*.gamehag.com/*
 // @match        *://*.steamcommunity.com/openid/login*
 // @match        *://*.steamcommunity.com/oauth/login*
+// @match        *://*.steamcommunity.com/groups/*
 // @grant        GM.getValue
 // @grant        GM.setValue
 // @updateURL    https://raw.githubusercontent.com/gekkedev/GiveawayKiller/master/giveawayKiller.user.js
@@ -69,16 +70,20 @@
     * 			These are CSS Selectors which will be buttons to be clicked (in ascending order). Some may not be clickable but each click that doesn't need to be done is already a success.
     *
     */
+
     var removePopups = (function(){
         killerNotice("removing popups!");
         removeElement("a[id^='popup']");
     });
+
     var fakeClickLinks = function() {
         J("form[action*='verify_click.php']").trigger("submit");
     };
+
     var solveGamehagUsernameCheck = function() {
         //"Kruemel" //some random user, just pick another one from the ranklist in case they block this user ;-)
     };
+
     scanForElement = function(ident) {
         //console.log("found " + ident + " " + jQuery(ident).length + " time(s)");console.log(jQuery(ident));
         if (J(ident).length >= 1) {
@@ -88,17 +93,21 @@
             return false;
         }
     };
+
     hideElement = function(ident) {
         if (scanForElement(ident)) {
             J(ident).hide();
         }
     };
+
     removeElement = function(ident) {
         J(ident).remove();
     };
+
     var visitLink = function(ident){
         window.location.replace(J(ident).attr("href"));
     };
+
     var removeGoogleAds = function(){
         if (scanForElement("ins[class*='adsbygoogle']")) {
             killerNotice("Google ads found, removing now!");
@@ -106,13 +115,39 @@
             setTimeout(removeGoogleAds, 1000);
         }
     };
-  	var getEncapsedString = function(input, delimiter) {//just gets the first occurrence
+
+    var getEncapsedString = function(input, delimiter) {//just gets the first occurrence
         var startpos = input.indexOf(delimiter) + delimiter.length;
         var endpos = input.indexOf(delimiter, startpos);
         return input.substring(startpos, endpos);
     };
+
     var getRandomInt = function(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
+    };
+
+    //stackoverflow.com/a/1314389
+    var checkGetParameter = function(parameterName) {
+        var url = window.location.href;
+        if(url.indexOf('?' + parameterName) != -1)
+            return true;
+        else if(url.indexOf('&' + parameterName) != -1)
+            return true;
+        return false
+    }
+
+    //stackoverflow.com/a/5448595
+    var returnGetParameter = function(parameterName) {
+        var result = null,
+            tmp = [];
+        location.search
+            .substr(1)
+            .split("&")
+            .forEach(function (item) {
+            tmp = item.split("=");
+            if (tmp[0] === parameterName) result = decodeURIComponent(tmp[1]);
+        });
+        return result;
     };
 
     /*var autoJoinGroups = function() {
@@ -130,40 +165,42 @@
             group.remove();
         }
     };*/
+
     var taskSkipper_1 = function() {//giveaway.su/varlick
-        if ($("article .extension").length) {
-            $("article .extension").addClass("installed");
-            var timestamp = $("article .extension").data("timestamp");
-            var csrf = $("article .extension").data("csrf");
+        if (J("article .extension").length) {
+            J("article .extension").addClass("installed");
+            var timestamp = J("article .extension").data("timestamp");
+            var csrf = J("article .extension").data("csrf");
             var extension = md5(timestamp+""+csrf);
-            var secret = $("article .extension").data("secret");
-            $.get(window.location.pathname+"?extension="+extension+"&timestamp="+timestamp+"&csrf="+csrf+(secret ? "&secret="+secret : ""), function(response) {
-                $("article").replaceWith(response);
+            var secret = J("article .extension").data("secret");
+            J.get(window.location.pathname+"?extension="+extension+"&timestamp="+timestamp+"&csrf="+csrf+(secret ? "&secret="+secret : ""), function(response) {
+                J("article").replaceWith(response);
                 //this is the extension version and should not depend on manual updates
-                $("article").attr("extension-version", "chrome-3.4.9");//+chrome.runtime.getManifest().version);
+                J("article").attr("extension-version", "chrome-3.4.9");//+chrome.runtime.getManifest().version);
 
 
-                var button = $("#getKey a");
+                var button = J("#getKey a");
                 var actions = 0;
-                $("#actions [data-action-id]").each(function(i,el){
-                    actions += parseInt($(el).data("action-id"));
-                    if ($(el).find("button[data-type='steam.curator']").length) {
-                        $(el).fadeOut();
-                    } else if ($(el).find("button[data-type='youtube.subscribe']").length) {
-                        $(el).fadeOut();
-                    } else if ($(el).find("button[data-type='twitter.follow']").length) {
-                        $(el).fadeOut();
-                    } else if ($(el).find("button[data-type='steam.game.wishlist']").length) {
-                        $(el).fadeOut();
-                    } else if ($(el).find("td:contains('Invite')").length) {
-                        $(el).fadeOut();
+                J("#actions [data-action-id]").each(function(i,el){
+                    actions += parseInt(J(el).data("action-id"));
+                    if (J(el).find("button[data-type='steam.curator']").length) {
+                        J(el).fadeOut();
+                    } else if (J(el).find("button[data-type='youtube.subscribe']").length) {
+                        J(el).fadeOut();
+                    } else if (J(el).find("button[data-type='twitter.follow']").length) {
+                        J(el).fadeOut();
+                    } else if (J(el).find("button[data-type='steam.game.wishlist']").length) {
+                        J(el).fadeOut();
+                    } else if (J(el).find("td:contains('Invite')").length) {
+                        J(el).fadeOut();
                     }
                 });
-                $(button).attr("href", $(button).attr("href")+"&actions="+md5(actions)).removeClass("disabled");
-                $("#getKey").prepend("Giveaway Killer by gekkedev has skipped some tasks for you, because this site is trying to manipulate the Steam store and to get access over your private data. Key claiming does usually work when you have joined all the required groups. Please use the Giveaway Helper by Citrinate in order to join groups easier. Linking accounts happens at your own risk and is a possible reason of unwanted actions commited via your account (account theft, unwanted purchases, etc.) and is qualifying you for punishments regarding Steam T.O.S. violations.<br>");
+                J(button).attr("href", J(button).attr("href")+"&actions="+md5(actions)).removeClass("disabled");
+                J("#getKey").prepend("Giveaway Killer by gekkedev has skipped some tasks for you, because this site is trying to manipulate the Steam store and to get access over your private data. Key claiming does usually work when you have joined all the required groups. Please use the Giveaway Helper by Citrinate in order to join groups easier. Linking accounts happens at your own risk and is a possible reason of unwanted actions commited via your account (account theft, unwanted purchases, etc.) and is qualifying you for punishments regarding Steam T.O.S. violations.<br>");
             });
         }
     };
+
     var taskSkipper_2 = function() {//goldengiveaways
         var tasks = J("a[onclick*='task()']");
         if (tasks.length) {
@@ -175,9 +212,10 @@
             J(".giveaway-new").last().prepend("<div class='alert alert-danger'>Giveaway Killer by gekkedev has skipped some tasks for you, because this site is trying to manipulate the Steam store by asking you to follow specific curators. Doing such would qualify you for punishments regarding Steam T.O.S. violations.</div><br>");
         }
     };
+
     var taskSkipper_3 = function() {//bananagiveaway/bananatic/grabfreegame.com
         //we can autosolve only link visiting (including facebook and youtube);
-        var tasks = J("li:has(span.icon:has(i.banicon.banicon-logo-small)):not(li:containsi('collect'):containsi('bananas'))");
+        var tasks = J("li:has(span.icon:has(i.banicon.banicon-logo-small)):not(li:containsi('collect'):containsi('banana'))");
         tasks = tasks.add(J("li:contains('FB'):containsi('Like'), li:has(span.icon:has(i.banicon.banicon-facebook))"));
         tasks = tasks.add(J("li:contains('YT'):containsi('Check'):not(li:containsi('sub'), li:has(span.icon:has(i.banicon.banicon-youtube)):not(li:containsi('sub')"));
         //steam group, twitter, and point collection tasks might be different
@@ -186,7 +224,7 @@
         //tasks = tasks.add(J("li:containsi('Share'):not(li:containsi('Twitter')"));
         tasks = J.unique(tasks); //filters out any duplicates
         tasks = tasks.filter(":not(:containsi('completed'))");
-        killerNotice(tasks.length + " skippable tasks found.");console.log(tasks);
+        killerNotice(tasks.length + " skippable tasks found.");console.log(tasks);//return true;
 
       	//dig deeper, but keep the task steps together
         tasks = tasks.find("div[class='buttons']");
@@ -195,7 +233,7 @@
         if (tasks.length) {
             tasks.each(function(counter, task){
                 killerNotice("Solving one task...");
-                var youtubebutton = J("button[data-ytid]");
+                var youtubebutton = J(task).find("button[data-ytid]");
                 if (youtubebutton.length) { //just hit the second link, since there is just one.
                     killerNotice("skipping the first link (youtube video)");
                     J.get(
@@ -337,7 +375,8 @@
         {
             hostname: "steamcommunity.com",
             ads: false,
-            clickables: ["input[type='submit']"]
+            clickables: ["input[type='submit']#imageLogin"], // oauth&openid; :contains('Sign In') might not work due to a multilingual interface
+            custom: function() {if (checkGetParameter("killerjoin")) {if (scanForElement("#join_group_form")) { killerNotice("Joining a Steam group!");J("#join_group_form").submit();}}}
         }
     ];
 
