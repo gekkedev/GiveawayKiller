@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Giveaway Killer
 // @namespace    https://github.com/gekkedev/GiveawayKiller
-// @version      1.1.2
+// @version      1.1.3
 // @description  Semi-automatic tool for Steam-related giveaway websites
 // @author       gekkedev
 // @match        *://*.marvelousga.com/*
@@ -19,6 +19,7 @@
 // @match        *://*.grabfreegame.com/*
 // @match        *://*.gamingimpact.com/*
 // @match        *://*.gamehag.com/*
+// @match        *://*.gamecode.win/*
 // @match        *://*.steamcommunity.com/openid/login*
 // @match        *://*.steamcommunity.com/oauth/login*
 // @match        *://*.steamcommunity.com/groups/*
@@ -74,6 +75,7 @@
     var removePopups = (function(){
         killerNotice("removing popups!");
         removeElement("a[id^='popup']");
+        J("html").unbind("click");
     });
 
     var fakeClickLinks = function() {
@@ -373,6 +375,12 @@
             ads: true
         },
         {
+            hostname: "gamecode.win",
+            ads: true,
+            //autologin: "a[href*='/login']",
+            trigger: [removePopups]
+        },
+        {
             hostname: "steamcommunity.com",
             ads: false,
             clickables: ["input[type='submit']#imageLogin"] // oauth&openid; :contains('Sign In') might not work due to a multilingual interface
@@ -421,7 +429,7 @@
             }
             if (site.trigger !== undefined) {
                 for(var j = 0; j < site.trigger.length; j++) {
-                    killerNotice('Swinging my task skipping wand!');
+                    killerNotice('Swinging my magical wand(' + site.trigger[j].name + ')!');
                     site.trigger[j]();
                 }
             }
