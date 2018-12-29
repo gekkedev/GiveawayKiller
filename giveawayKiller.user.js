@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Giveaway Killer
 // @namespace    https://github.com/gekkedev/GiveawayKiller
-// @version      1.1.3
+// @version      1.1.4
 // @description  Semi-automatic tool for Steam-related giveaway websites
 // @author       gekkedev
 // @match        *://*.marvelousga.com/*
@@ -86,14 +86,18 @@
         //"Kruemel" //some random user, just pick another one from the ranklist in case they block this user ;-)
     };
 
-    scanForElement = function(ident) {
+    scanForElement = function(identifiers) { //iterates through elements and returns true if all elements exist at least once
         //console.log("found " + ident + " " + jQuery(ident).length + " time(s)");console.log(jQuery(ident));
-        if (J(ident).length >= 1) {
-            return true;
-        } else {
-            //console.log('cannot find ' + ident);
-            return false;
-        }
+        if (typeof identifiers != "object") identifiers = [identifiers]; //wrap it as array in case it isn't one
+        counter = Object.keys(identifiers).length;
+        J.each(identifiers, function(i, ident) {
+            if (J(ident).length >= 1) {
+                counter--;
+            } else {
+                console.log('cannot find ' + ident);
+            }
+        });
+        return counter == 0;
     };
 
     hideElement = function(ident) {
@@ -282,6 +286,11 @@
         J('#myModal-givform').modal('show');
     };
 
+    var openIDConfirm = function() { //can be utilized for oauth&openid; :contains('Sign In') might not work due to a multilingual interface
+        if (scanForElement([".OpenID_loggedInText", "input[type='submit']#imageLogin"]))
+            J("input[type='submit']#imageLogin").click();
+    }
+
     //configuration
     var config = [
         {
@@ -383,7 +392,7 @@
         {
             hostname: "steamcommunity.com",
             ads: false,
-            clickables: ["input[type='submit']#imageLogin"] // oauth&openid; :contains('Sign In') might not work due to a multilingual interface
+            trigger: [openIDConfirm]
             //custom: function() {if (checkGetParameter("killerjoin")) {if (scanForElement("#join_group_form")) { killerNotice("Joining a Steam group!");J("#join_group_form").submit();}}}
         }
     ];
@@ -418,11 +427,11 @@
                     for(var j = 0; j < site.clickables.length; j++) {
                         if (J.isArray(site.clickables[j])) {//randomization doesn't look like the best solution here. what's it even for?
                             j = getRandomInt(0, site.clickables[j].length);
-                            console.log(j);
                         }
                         if (scanForElement(site.clickables[j])) {
                             killerNotice("Clicking a button for you <3");
                             J(site.clickables[j]).click();
+                            console.log(j);
                         }
                     }
                 }
