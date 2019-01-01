@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Giveaway Killer
 // @namespace    https://github.com/gekkedev/GiveawayKiller
-// @version      1.1.4
+// @version      1.1.5
 // @description  Semi-automatic tool for Steam-related giveaway websites
 // @author       gekkedev
 // @match        *://*.marvelousga.com/*
@@ -61,22 +61,34 @@
     *			The hostname of the site we're setting the config for. Must be the same as what's defined
     *			as @match in the metadata block above.
     *
-    *		googleads: Boolean
-    * 			This tells us if the site we visit has ads (this refers to banners of any size). We'll then trigger the removal function for that.
+    *		ads: Boolean
+    * 			This tells us if the site we visit has ads (this refers to banners of any size, mostly from Google). We'll then trigger the removal function for that.
     *
     *		autologin: String
     * 			This is a selector for a link which has to be visited in order to get forwarded to the login page.
     *
+    *       trigger: Array of Functions
+    *           Triggers may or may not be site specific; they are usually for task solving and can be reused on unmodified instances of poorly programmed website scripts.
+    *
     *		clickables: Array of String
     * 			These are CSS Selectors which will be buttons to be clicked (in ascending order). Some may not be clickable but each click that doesn't need to be done is already a success.
-    *
     */
 
-    var removePopups = (function(){
-        killerNotice("removing popups!");
+    var removePopups = function(){
+        //killerNotice("removing popups!");
         removeElement("a[id^='popup']");
-        J("html").unbind("click");
-    });
+
+        //does not work on all sites, a workaround is in the next paragraph
+        J(document).ready(function(){
+            J("html").unbind("click");
+        });
+
+        //necessary for gamecode.win and dupedornot.com
+        var d = new Date();
+        var todayStr = (d.getUTCMonth() + 1) + "/" + d.getUTCDate() + "/" + d.getUTCFullYear();
+        document.cookie = "haveVisited1=" + todayStr + "; path=/";
+        //setTimeout(removePopups, 1000);
+    };
 
     var fakeClickLinks = function() {
         J("form[action*='verify_click.php']").trigger("submit");
@@ -304,7 +316,7 @@
         {
             hostname: "dupedornot.com",
             ads: true,
-            autologin: "a[href='?login']",
+            autologin: "a[href*='/auth/steam']",
             trigger: [removePopups]
         },
         {
