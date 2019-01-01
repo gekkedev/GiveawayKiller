@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Giveaway Killer
 // @namespace    https://github.com/gekkedev/GiveawayKiller
-// @version      1.1.6
+// @version      1.1.7
 // @description  Semi-automatic tool for Steam-related giveaway websites
 // @author       gekkedev
 // @match        *://*.marvelousga.com/*
@@ -47,11 +47,11 @@
         }
     });
 
-    killerNotice = function(message) {
+    killerNotice = function(message, type = "info") { //types: success/info/warn/error
         console.log(message);
         J.notify("GiveawayKiller v" + GM_info.script.version + ": " + message, {
             autoHideDelay: 10000,
-            className: "info"
+            className: type
         });
     };
 
@@ -303,13 +303,21 @@
         //J("a.enter-link.custom-border") //fillable field, nothing to automate there except opening
 
         links = J("a.enter-link.instagram-border"); //instagram url visiting
+        links = links.add(J("a.enter-link.youtube-border")); //youtube "subscribing" (url visiting)
+        links = J.unique(links); //filters out any duplicates
         killerNotice(links.length + " skippable tasks found.");
 
         links.each(function(i, task){
             killerNotice("Solving one task...");
-            angular.element(task).triggerHandler("click");
-            angular.element(J(J(task).parent()).find("a.btn-large")).triggerHandler("click");
-            killerNotice("Solved!");
+            if (J(task).find("i.fa-check").length == 0) {
+                task.click();
+                taskcontainer = J(J(task).parent());
+                taskcontainer.find("a.btn-large")[0].click();
+                taskcontainer.find(".form-actions button:containsi('continue')")[0].click();
+                killerNotice("...solved! <3", "success");
+            } else {
+                killerNotice("...already solved! :-)", "warn");
+            }
         });
     };
 
