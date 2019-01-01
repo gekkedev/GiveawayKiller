@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         Giveaway Killer
 // @namespace    https://github.com/gekkedev/GiveawayKiller
-// @version      1.1.5
+// @version      1.1.6
 // @description  Semi-automatic tool for Steam-related giveaway websites
 // @author       gekkedev
 // @match        *://*.marvelousga.com/*
@@ -20,6 +20,7 @@
 // @match        *://*.gamingimpact.com/*
 // @match        *://*.gamehag.com/*
 // @match        *://*.gamecode.win/*
+// @match        *://*.gleam.io/*
 // @match        *://*.steamcommunity.com/openid/login*
 // @match        *://*.steamcommunity.com/oauth/login*
 // @match        *://*.steamcommunity.com/groups/*
@@ -298,6 +299,20 @@
         J('#myModal-givform').modal('show');
     };
 
+    var gleamTaskSolver = function() {console.log(J("a.enter-link.custom-border"));
+        //J("a.enter-link.custom-border") //fillable field, nothing to automate there except opening
+
+        links = J("a.enter-link.instagram-border"); //instagram url visiting
+        killerNotice(links.length + " skippable tasks found.");
+
+        links.each(function(i, task){
+            killerNotice("Solving one task...");
+            angular.element(task).triggerHandler("click");
+            angular.element(J(J(task).parent()).find("a.btn-large")).triggerHandler("click");
+            killerNotice("Solved!");
+        });
+    };
+
     var openIDConfirm = function() { //can be utilized for oauth&openid; :contains('Sign In') might not work due to a multilingual interface
         if (scanForElement([".OpenID_loggedInText", "input[type='submit']#imageLogin"]))
             J("input[type='submit']#imageLogin").click();
@@ -400,6 +415,11 @@
             ads: true,
             //autologin: "a[href*='/login']",
             trigger: [removePopups]
+        },
+        {
+            hostname: "gleam.io",
+            ads: false,
+            trigger: [gleamTaskSolver]
         },
         {
             hostname: "steamcommunity.com",
