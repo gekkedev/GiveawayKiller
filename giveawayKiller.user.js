@@ -26,6 +26,8 @@
 // @match        *://*.steamcommunity.com/groups/*
 // @grant        GM.getValue
 // @grant        GM.setValue
+// @grant        GM.xmlhttpRequest
+// @grant        GM.xmlHttpRequest
 // @updateURL    https://raw.githubusercontent.com/gekkedev/GiveawayKiller/master/giveawayKiller.user.js
 // @downloadURL  https://raw.githubusercontent.com/gekkedev/GiveawayKiller/master/giveawayKiller.user.js
 // @require      https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js
@@ -195,26 +197,103 @@
             J.get(window.location.pathname+"?extension="+extension+"&timestamp="+timestamp+"&csrf="+csrf+(secret ? "&secret="+secret : ""), function(response) {
                 J("article").replaceWith(response);
                 //this is the extension version and should not depend on manual updates
-                J("article").attr("extension-version", "chrome-3.4.9");//+chrome.runtime.getManifest().version);
+                J("article").attr("extension-version", "chrome-4.0.2");//+chrome.runtime.getManifest().version);
 
+                var toggleActionButton = function(button) {
+                    J(button).toggleClass("btn-default btn-success disabled").prop("disabled", "disabled").find("i.glyphicon-refresh").toggleClass("glyphicon-refresh glyphicon-ok").removeClass("spin");
 
-                var button = J("#getKey a");
-                var actions = 0;
-                J("#actions [data-action-id]").each(function(i,el){
-                    actions += parseInt(J(el).data("action-id"));
-                    if (J(el).find("button[data-type='steam.curator']").length) {
-                        J(el).fadeOut();
-                    } else if (J(el).find("button[data-type='youtube.subscribe']").length) {
-                        J(el).fadeOut();
-                    } else if (J(el).find("button[data-type='twitter.follow']").length) {
-                        J(el).fadeOut();
-                    } else if (J(el).find("button[data-type='steam.game.wishlist']").length) {
-                        J(el).fadeOut();
-                    } else if (J(el).find("td:contains('Invite')").length) {
-                        J(el).fadeOut();
+                    if (J("#actions .btn-success[data-type]").length == J("#actions tr").length) {
+                        var button = J("#getKey a");
+                        var actions = 0;
+                        J("#actions [data-action-id]").each(function(i,el){
+                            actions += parseInt(J(el).data("action-id"));
+                        });
+                        J(button).attr("href", J(button).attr("href")+"&actions="+md5(actions)).removeClass("disabled");
                     }
+                };
+
+                var universalVerify = function(data, callback) {
+                    var action = JSON.parse(JSON.stringify(data));
+                    var request = new XMLHttpRequest();
+
+                    GM.xmlHttpRequest({
+                        url: action.task,
+                        method: action.method,
+                        headers: { "Content-type": "application/x-www-form-urlencoded" },
+                        onload: function(request) {
+                            if (request.status >= 200 && request.status < 400) {
+
+                                var new_response = request.responseText;
+
+                                // Steam Curator Follow
+                                new_response = new_response.replace(/(\<div class=\"page_desc\"\>)/, "");
+                                new_response = new_response.replace(/(onclick=\"FollowCurator\( ([0-9]+), false \);\" style=\"display: none\")/, "onclick=\"FollowCurator( $2, false );\"");
+                                new_response = new_response.replace(/(onclick=\"FollowCurator\( ([0-9]+), true \);\")/, "onclick=\"FollowCurator( $2, true );\" style=\"display: none\"");
+
+                                // Steam Game Follow & Like
+                                new_response = new_response + " game_area_already_owned ";
+                                new_response = new_response.replace('<div class="btnv6_blue_hoverfade btn_medium queue_btn_active" style="display: none;">', '<div class="btnv6_blue_hoverfade btn_medium queue_btn_active" style="">', )
+
+                                // Youtube Subscribe
+                                new_response = new_response + ' data-is-subscribed="True" like-button-renderer-like-button-clicked yt-uix-button-toggled yt-uix-post-anchor yt-uix-tooltip ';
+
+                                // TODO: Youtube: like
+                                // TODO: VK: club, repost, like
+                                // TODO: Facebook: like, follow, post.like
+                                // TODO: Twitter: follow, favorite, retweet
+
+                                action.response = window.btoa(unescape(encodeURIComponent(new_response+"")));
+                                var params = Object.keys(action).map(function(k){ return encodeURIComponent(k) + '=' + encodeURIComponent(action[k]) }).join('&');
+
+                                GM.xmlHttpRequest({
+                                    url: "https://giveaway.su/action/check/"+action.id,
+                                    method: "POST",
+                                    headers: {"Content-type": "application/x-www-form-urlencoded"},
+                                    data: params,
+                                    onload: function(request) {
+                                        if (request.status >= 200 && request.status < 400) {
+                                            if (JSON.parse(request.responseText))
+                                                callback(JSON.parse(request.responseText));
+                                            else
+                                                callback(false);
+                                        } else
+                                            callback(false);
+                                    }
+                                })
+                            } else
+                                callback(false);
+                        },
+                        onerror: function(response) {
+                            callback(false);
+                        }
+                    });
+                }
+
+                J("#actions a.btn").on("click", function() {
+                    toggleActionButton(J(this));
+                    return false;
                 });
-                J(button).attr("href", J(button).attr("href")+"&actions="+md5(actions)).removeClass("disabled");
+
+                J("#actions").on("click", "button[data-type='action.universal']", function() {
+                    var button = J(this).prop("disabled", "disabled");
+                    J(button).find("i").addClass("spin");
+                    var action = JSON.parse(window.atob(J(this).data("action")));
+                    
+                    setTimeout(function() {
+                        universalVerify(action, function(response) {
+                            if (response && response.success) {
+                                J(button).attr("data-result", response.result);
+                                toggleActionButton(button);
+                            } else {
+                                if (response && response.error) {
+                                    (J("#giveaway-log").val(J.trim("ERROR: "+ response.error + "\r\n" + J("#giveaway-log").val())))[0].click();
+                                }
+                                J(button).prop("disabled", false).find(".glyphicon.spin").removeClass("spin");
+                            }
+                        });
+                    }, ((action.wait && (parseInt(action.wait) > 0)) ? action.wait : 100));
+                });
+
                 J("#getKey").prepend("Giveaway Killer by gekkedev has skipped some tasks for you, because this site is trying to manipulate the Steam store and to get access over your private data. Key claiming does usually work when you have joined all the required groups. Please use the Giveaway Helper by Citrinate in order to join groups easier. Linking accounts happens at your own risk and is a possible reason of unwanted actions commited via your account (account theft, unwanted purchases, etc.) and is qualifying you for punishments regarding Steam T.O.S. violations.<br>");
             });
         }
